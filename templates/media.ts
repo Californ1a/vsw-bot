@@ -1,7 +1,7 @@
 export default
 `{{Infobox Media
 |name = NAME
-|image = [[File:NAME.jpg]]
+|image = [[File:MEDIA.jpg]]
 |release = DATE
 |type = TYPE
 |category = 

@@ -4,7 +4,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"start": "bun run index.ts"
+		"videos": "bun run ./src/createVideos.ts"
 	},
 	"devDependencies": {
 		"@types/bun": "latest"

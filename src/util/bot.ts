@@ -1,10 +1,13 @@
 import { Mwn } from 'mwn';
+const log = Mwn.log;
+
+log('[I] Initializing bot...');
 
 const bot = await Mwn.init({
 	apiUrl: process.env.WIKI_API_URL,
 	username: process.env.WIKI_BOT_USERNAME,
 	password: process.env.WIKI_BOT_PASSWORD,
-	userAgent: 'AllianceBot 1.0 ([[User:Californ1a]])',
+	userAgent: 'AllianceBot/1.0.0 ([[User:Californ1a]])',
 	defaultParams: {
 		assert: 'bot',
 	}
@@ -23,15 +26,17 @@ const shutoffInterval = setInterval(async () => {
 			notsections: 'alert|message',
 		});
 		if (req.query.notifications.rawcount > 0) {
-			console.log('New unread notification detected. Shutting down bot.');
+			log('[W] New unread notification detected. Shutting down bot.');
 			clearInterval(shutoffInterval);
 			process.exit();
 		}
 	} catch (error) {
-		console.error('Error checking notifications:', error);
+		log('[E] Error checking notifications: ' + error);
 	} finally {
 		busy = false;
 	}
 }, 5000); // Check every 5 seconds
 
-export default bot;
+log('[S] Bot initialized.');
+
+export { bot, log };
