@@ -183,7 +183,15 @@ async function main() {
 		if (video.snippet?.publishedAt) {
 			date = (new bot.Date(video.snippet.publishedAt)).format('D MMMM YYYY', 'utc');
 		}
-		const description = video.snippet?.description || '';
+		let description = '';
+		if (video.snippet?.description) {
+			description = video.snippet.description;
+			const lines = description.split('\n\n');
+			for (let i = 0; i < lines.length; i++) {
+				lines[i] = lines[i].trim().replace('\n', '<br>\n');
+			}
+			description = lines.join('\n\n').replace('\n#', '\n<nowiki/>#').replace('\n*', '\n<nowiki/>*');
+		}
 
 		// Create page content
 		let content = mediaTemplate;
