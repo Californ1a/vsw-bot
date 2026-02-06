@@ -123,12 +123,12 @@ async function main() {
 		}
 		let description = '';
 		if (video.snippet?.description) {
-			description = video.snippet.description;
-			const lines = description.split('\n\n');
-			for (let i = 0; i < lines.length; i++) {
-				lines[i] = lines[i].trim().replace('\n', '<br>\n');
-			}
-			description = lines.join('\n\n').replace('\n#', '\n<nowiki/>#').replace('\n*', '\n<nowiki/>*');
+			description = video.snippet.description
+				.replace(/\u200E/g, '') // Remove any LRM characters
+				.replace(/[“”]/g, '"') // Replace curly quotes with straight quotes
+				.replace(/[‘’]/g, "'") // Replace curly apostrophes with straight apostrophes
+    		.replace(/(?<=[^\n])\n(?=[^\n])/g, '<br>\n') // Add br tags for single newlines
+    		.replace(/\n([#*])/g, '\n<nowiki/>$1') // Prevent lists from being created
 		}
 
 		// Create page content
@@ -150,57 +150,59 @@ async function main() {
 			content = `{{DISPLAYTITLE:${titleInfo.originalTitle}}}\n` + content;
 		}
 		
-		// Create page
-		log(`[I] Creating page for video: ${titleInfo.title} (${url})`);
-		try {
-			if (process.env.NODE_ENV === 'production') {
-				await bot.create(titleInfo.title, content, `Automated creation of page for YouTube video ${url}`);
-			} else {
-				log(`[S] (Simulated) Created page: ${titleInfo.title}`);
-			}
-		} catch (error) {
-			log(`[E] Error creating page for video: ${titleInfo.title}`);
-			log(error);
-			continue;
-		}
+		log(content);
 
-		// Upload thumbnail image
-		log(`[I] Uploading video's thumbnail image: ${titleInfo.mediaTitle}`);
-		let imageUrl = video.snippet?.thumbnails?.maxres?.url || video.snippet?.thumbnails?.default?.url;
-		if (imageUrl) {
-			imageUrl = imageUrl.replace(/\/default\.jpg$/, '/maxresdefault.jpg');
-			const file = Bun.file('next_thumbnail.jpg');
-			try {
-				const result = await fetch(imageUrl);
-				await Bun.write(file, result);
-				if (process.env.NODE_ENV === 'production') {
-					await bot.upload(`File:${titleInfo.mediaTitle}.jpg`, 'next_thumbnail.jpg', `{{Media thumbnail|link=${imageUrl}}}`, {
-						ignorewarning: false,
-						comment: `Automated upload of thumbnail image for YouTube video ${url}`,
-					});
-				} else {
-					log(`[S] (Simulated) Uploaded image: ${imageUrl}`);
-				}
-				await file.delete();
-			} catch (error) {
-				if (error instanceof Error && error.message.includes('already exists')) {
-					log(`[I] Image already exists: ${imageUrl}`);
-					await file.delete();
-					continue;
-				}
-				log(`[E] Error uploading image: ${imageUrl}`);
-				log(error);
-				await file.delete();
-				continue;
-			}
-		}
+		// // Create page
+		// log(`[I] Creating page for video: ${titleInfo.title} (${url})`);
+		// try {
+		// 	if (process.env.NODE_ENV === 'production') {
+		// 		await bot.create(titleInfo.title, content, `Automated creation of page for YouTube video ${url}`);
+		// 	} else {
+		// 		log(`[S] (Simulated) Created page: ${titleInfo.title}`);
+		// 	}
+		// } catch (error) {
+		// 	log(`[E] Error creating page for video: ${titleInfo.title}`);
+		// 	log(error);
+		// 	continue;
+		// }
 
-		if (video.snippet?.publishedAt) {
-			const publishedAt = new Date(video.snippet.publishedAt);
-			await file.write(publishedAt.toISOString());
-		}
+		// // Upload thumbnail image
+		// log(`[I] Uploading video's thumbnail image: ${titleInfo.mediaTitle}`);
+		// let imageUrl = video.snippet?.thumbnails?.maxres?.url || video.snippet?.thumbnails?.default?.url;
+		// if (imageUrl) {
+		// 	imageUrl = imageUrl.replace(/\/default\.jpg$/, '/maxresdefault.jpg');
+		// 	const file = Bun.file('next_thumbnail.jpg');
+		// 	try {
+		// 		const result = await fetch(imageUrl);
+		// 		await Bun.write(file, result);
+		// 		if (process.env.NODE_ENV === 'production') {
+		// 			await bot.upload(`File:${titleInfo.mediaTitle}.jpg`, 'next_thumbnail.jpg', `{{Media thumbnail|link=${imageUrl}}}`, {
+		// 				ignorewarning: false,
+		// 				comment: `Automated upload of thumbnail image for YouTube video ${url}`,
+		// 			});
+		// 		} else {
+		// 			log(`[S] (Simulated) Uploaded image: ${imageUrl}`);
+		// 		}
+		// 		await file.delete();
+		// 	} catch (error) {
+		// 		if (error instanceof Error && error.message.includes('already exists')) {
+		// 			log(`[I] Image already exists: ${imageUrl}`);
+		// 			await file.delete();
+		// 			continue;
+		// 		}
+		// 		log(`[E] Error uploading image: ${imageUrl}`);
+		// 		log(error);
+		// 		await file.delete();
+		// 		continue;
+		// 	}
+		// }
 
-		await Bun.sleep(5000);
+		// if (video.snippet?.publishedAt) {
+		// 	const publishedAt = new Date(video.snippet.publishedAt);
+		// 	await file.write(publishedAt.toISOString());
+		// }
+
+		// await Bun.sleep(3000);
 	}
 }
 

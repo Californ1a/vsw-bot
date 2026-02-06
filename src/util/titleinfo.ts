@@ -22,7 +22,7 @@ function cleanTitle(namespaces: string[], postTitle?: string | null) {
 	let originalTitle = postTitle;
 	let mediaTitle = '';
 
-	let title = unescapeHTML(postTitle).replace(/[‘’]/g, "'");
+	let title = unescapeHTML(postTitle).replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 	if (title.includes("|")) {
 		originalTitle = title.replace(/\|/g, "{{!}}");
 		title = title.replace(/\|/g, "-");
