@@ -127,7 +127,7 @@ async function main() {
 				.replace(/\u200E/g, '') // Remove any LRM characters
 				.replace(/[“”]/g, '"') // Replace curly quotes with straight quotes
 				.replace(/[‘’]/g, "'") // Replace curly apostrophes with straight apostrophes
-    		.replace(/(?<=[^\n])\n(?=[^\n])/g, '<br>\n') // Add br tags for single newlines
+    		.replace(/(?<!\n)\n(?!\n)/g, '<br>\n') // Add br tags for single newlines
     		.replace(/\n([#*])/g, '\n<nowiki/>$1') // Prevent lists from being created
 		}
 
