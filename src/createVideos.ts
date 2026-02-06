@@ -149,60 +149,58 @@ async function main() {
 						+ '}}';
 			content = `{{DISPLAYTITLE:${titleInfo.originalTitle}}}\n` + content;
 		}
-		
-		log(content);
 
-		// // Create page
-		// log(`[I] Creating page for video: ${titleInfo.title} (${url})`);
-		// try {
-		// 	if (process.env.NODE_ENV === 'production') {
-		// 		await bot.create(titleInfo.title, content, `Automated creation of page for YouTube video ${url}`);
-		// 	} else {
-		// 		log(`[S] (Simulated) Created page: ${titleInfo.title}`);
-		// 	}
-		// } catch (error) {
-		// 	log(`[E] Error creating page for video: ${titleInfo.title}`);
-		// 	log(error);
-		// 	continue;
-		// }
+		// Create page
+		log(`[I] Creating page for video: ${titleInfo.title} (${url})`);
+		try {
+			if (process.env.NODE_ENV === 'production') {
+				await bot.create(titleInfo.title, content, `Automated creation of page for YouTube video ${url}`);
+			} else {
+				log(`[S] (Simulated) Created page: ${titleInfo.title}`);
+			}
+		} catch (error) {
+			log(`[E] Error creating page for video: ${titleInfo.title}`);
+			log(error);
+			continue;
+		}
 
-		// // Upload thumbnail image
-		// log(`[I] Uploading video's thumbnail image: ${titleInfo.mediaTitle}`);
-		// let imageUrl = video.snippet?.thumbnails?.maxres?.url || video.snippet?.thumbnails?.default?.url;
-		// if (imageUrl) {
-		// 	imageUrl = imageUrl.replace(/\/default\.jpg$/, '/maxresdefault.jpg');
-		// 	const file = Bun.file('next_thumbnail.jpg');
-		// 	try {
-		// 		const result = await fetch(imageUrl);
-		// 		await Bun.write(file, result);
-		// 		if (process.env.NODE_ENV === 'production') {
-		// 			await bot.upload(`File:${titleInfo.mediaTitle}.jpg`, 'next_thumbnail.jpg', `{{Media thumbnail|link=${imageUrl}}}`, {
-		// 				ignorewarning: false,
-		// 				comment: `Automated upload of thumbnail image for YouTube video ${url}`,
-		// 			});
-		// 		} else {
-		// 			log(`[S] (Simulated) Uploaded image: ${imageUrl}`);
-		// 		}
-		// 		await file.delete();
-		// 	} catch (error) {
-		// 		if (error instanceof Error && error.message.includes('already exists')) {
-		// 			log(`[I] Image already exists: ${imageUrl}`);
-		// 			await file.delete();
-		// 			continue;
-		// 		}
-		// 		log(`[E] Error uploading image: ${imageUrl}`);
-		// 		log(error);
-		// 		await file.delete();
-		// 		continue;
-		// 	}
-		// }
+		// Upload thumbnail image
+		log(`[I] Uploading video's thumbnail image: ${titleInfo.mediaTitle}`);
+		let imageUrl = video.snippet?.thumbnails?.maxres?.url || video.snippet?.thumbnails?.default?.url;
+		if (imageUrl) {
+			imageUrl = imageUrl.replace(/\/default\.jpg$/, '/maxresdefault.jpg');
+			const file = Bun.file('next_thumbnail.jpg');
+			try {
+				const result = await fetch(imageUrl);
+				await Bun.write(file, result);
+				if (process.env.NODE_ENV === 'production') {
+					await bot.upload(`File:${titleInfo.mediaTitle}.jpg`, 'next_thumbnail.jpg', `{{Media thumbnail|link=${imageUrl}}}`, {
+						ignorewarning: false,
+						comment: `Automated upload of thumbnail image for YouTube video ${url}`,
+					});
+				} else {
+					log(`[S] (Simulated) Uploaded image: ${imageUrl}`);
+				}
+				await file.delete();
+			} catch (error) {
+				if (error instanceof Error && error.message.includes('already exists')) {
+					log(`[I] Image already exists: ${imageUrl}`);
+					await file.delete();
+					continue;
+				}
+				log(`[E] Error uploading image: ${imageUrl}`);
+				log(error);
+				await file.delete();
+				continue;
+			}
+		}
 
-		// if (video.snippet?.publishedAt) {
-		// 	const publishedAt = new Date(video.snippet.publishedAt);
-		// 	await file.write(publishedAt.toISOString());
-		// }
+		if (video.snippet?.publishedAt) {
+			const publishedAt = new Date(video.snippet.publishedAt);
+			await file.write(publishedAt.toISOString());
+		}
 
-		// await Bun.sleep(3000);
+		await Bun.sleep(3000);
 	}
 }
 
