@@ -4,10 +4,12 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"videos": "bun run ./src/createVideos.ts"
+		"videos": "bun run ./src/createVideos.ts",
+		"titleinfo": "bun run ./src/getTitleInfo.ts"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"@types/minimist": "^1.2.5"
 	},
 	"peerDependencies": {
 		"typescript": "^5"
@@ -15,6 +17,7 @@
 	"dependencies": {
 		"@googleapis/youtube": "^31.0.0",
 		"iso8601-duration": "^2.1.3",
+		"minimist": "^1.2.8",
 		"mwn": "^3.0.1"
 	}
 }
