@@ -69,8 +69,12 @@ async function fetchAllVideos(after?: Date) {
 
 		// Get the latest video's publishedAt date
 		if (Array.isArray(data) && data.length > 0) {
-			// Newest video is always first
-			const latestVideo = data[0];
+			// Find newest video
+			const latestVideo = data.reduce((latest, video) => {
+				const dateA = video.snippet?.publishedAt ? new Date(video.snippet.publishedAt).getTime() : 0;
+				const dateB = latest.snippet?.publishedAt ? new Date(latest.snippet.publishedAt).getTime() : 0;
+				return dateA > dateB ? video : latest;
+			});
 			if (latestVideo?.snippet?.publishedAt) {
 				after = new Date(latestVideo.snippet.publishedAt);
 			}
