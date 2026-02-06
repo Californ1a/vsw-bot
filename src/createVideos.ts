@@ -15,7 +15,9 @@ async function main() {
 			lastCreated = new Date(content);
 		}
 	}
-	log(`[I] Last created video date: ${lastCreated ? lastCreated.toISOString() : 'None'}${lastCreated ? ` (${lastCreated.toLocaleString()})` : ''}`);
+	const utcStr = lastCreated ? lastCreated.toISOString() : 'None';
+	const localStr = lastCreated ? ` (${lastCreated.toLocaleString()})` : '';
+	log(`[I] Last created video date: ${utcStr}${localStr}`);
 	const videos = (await fetchAllVideos(lastCreated))
 		.filter(video => {
 			// Return only videos newer than lastCreated
@@ -142,12 +144,15 @@ async function main() {
 			.replace(/DESCRIPTION/g, description);
 
 		if (titleInfo.restrictedTitleReasons.length > 0) {
-			log(`[W] Title "${titleInfo.originalTitle}" has restrictions: ${titleInfo.restrictedTitleReasons.join('; ')}`);
+			const restrictionStr = titleInfo.restrictedTitleReasons.join('; ');
+			log(`[W] Title "${titleInfo.originalTitle}" has restrictions: ${restrictionStr}`);
 			content += '\n{{Restricted title'
 						+ '|' + titleInfo.restrictedTitleReasons.join('|')
 						+ (titleInfo.restrictedTitleReasons.includes(FALSE_SUBPAGE_REASON) ? '|subpage=1' : '')
 						+ '}}';
-			content = `{{DISPLAYTITLE:${titleInfo.originalTitle}}}\n` + content;
+			if (titleInfo.originalTitle !== titleInfo.title) {
+				content = `{{DISPLAYTITLE:${titleInfo.originalTitle}}}\n` + content;
+			}
 		}
 
 		// Create page
