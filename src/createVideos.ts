@@ -20,6 +20,23 @@ const MAX_PAGES = 10;
 let count = 0;
 let totalDone = 0;
 
+async function continueProcessing(prompt: string) {
+	while (true) {
+		const answer = await rl.question(prompt);
+		if (!answer) continue;
+
+		const lc = answer.toLowerCase();
+		const exitLines = ['n', 'no'];
+		const continueLines = ['y', 'yes'];
+		if (exitLines.includes(lc)) {
+			return false;
+		} else if (continueLines.includes(lc)) {
+			count = 0;
+			return true;
+		}
+	}
+}
+
 async function saveLastTime(video: youtube_v3.Schema$Video) {
 	if (video.snippet?.publishedAt) {
 		const publishedAt = new Date(video.snippet.publishedAt);
@@ -212,92 +229,79 @@ async function main() {
 	}
 
 	// Create pages for videos
-	while (true) {
-		for (const video of videos) {
-			if (count >= MAX_PAGES) {
+	for (const video of videos) {
+		if (count >= MAX_PAGES) {
+			const prompt = `Processed ${totalDone}/${videos.length} videos. Create ${MAX_PAGES} more? (y/n): `;
+			const keepGoing = continueProcessing(prompt);
+			if (!keepGoing) {
 				break;
-			}
-			count++;
-			log('');
-			const id = video.id || '';
-			const url = `https://www.youtube.com/watch?v=${id}`;
-			const titleInfo = titleInfoCache[id] || cleanTitle(namespaces, video.snippet?.title);
-			if (!titleInfoCache[id]) {
-				titleInfoCache[id] = titleInfo;
-			}
-			if (titleInfo.title === '') {
-				log(`[W] Skipping video with empty title: ${url}`);
-				await saveLastTime(video);
-				continue;
-			}
-			if (duplicateTitles.get(titleInfo.title)?.length! > 1) {
-				log(`[W] Skipping video with duplicate title: ${titleInfo.title} (${url})`);
-				await saveLastTime(video);
-				continue;
-			}
-
-			// Check page existance
-			try {
-				const page = new bot.Page(titleInfo.title);
-				const exists = await page.exists();
-				if (exists) {
-					const categories = await page.categories();
-					if (categories.includes('Category:Videos')) {
-						log(`[W] Page for video already exists: ${titleInfo.title} (${url})`);
-					} else {
-						titleInfo.title = titleInfo.title + ' (video)';
-						titleInfo.mediaTitle = titleInfo.mediaTitle + ' (video)';
-						const newPage = new bot.Page(titleInfo.title);
-						const newExists = await newPage.exists();
-						if (newExists) {
-							log(`[W] Page for video already exists: ${titleInfo.title} (${url})`);
-						} else {
-							await createPage(video, titleInfo, url);
-						}
-					}
-				} else {
-					await createPage(video, titleInfo, url);
-				}
-			} catch (error) {
-				log(`[E] Error checking existence of page: ${titleInfo.title}`);
-				log(error);
-			}
-
-			// Check file page existance
-			try {
-				const page = new bot.Page(`File:${titleInfo.mediaTitle}.jpg`);
-				const exists = await page.exists();
-				if (exists) {
-					log(`[W] File page already exists: File:${titleInfo.mediaTitle}.jpg (${url})`);
-				} else {
-					await uploadThumbnail(video, titleInfo, url);
-				}
-			} catch (error) {
-				log(`[E] Error checking existence of file page: File:${titleInfo.mediaTitle}.jpg`);
-				log(error);
-			}
-
-			await saveLastTime(video);
-
-			totalDone++;
-			if (count < MAX_PAGES) {
-				await sleep(TIME_BETWEEN_PAGES * 1000);
 			}
 		}
+		count++;
+		log('');
+		const id = video.id || '';
+		const url = `https://www.youtube.com/watch?v=${id}`;
+		const titleInfo = titleInfoCache[id] || cleanTitle(namespaces, video.snippet?.title);
+		if (!titleInfoCache[id]) {
+			titleInfoCache[id] = titleInfo;
+		}
+		if (titleInfo.title === '') {
+			log(`[W] Skipping video with empty title: ${url}`);
+			await saveLastTime(video);
+			continue;
+		}
+		if (duplicateTitles.get(titleInfo.title)?.length! > 1) {
+			log(`[W] Skipping video with duplicate title: ${titleInfo.title} (${url})`);
+			await saveLastTime(video);
+			continue;
+		}
 
-		const prompt = `Processed ${totalDone}/${videos.length} videos. Create ${MAX_PAGES} more? (y/n): `;
-		const answer = await rl.question(prompt);
-		if (answer) {
-			const lc = answer.toLowerCase();
-			const exitLines = ['n', 'no'];
-			if (exitLines.includes(lc)) {
-				break;
+		// Check page existance
+		try {
+			const page = new bot.Page(titleInfo.title);
+			const exists = await page.exists();
+			if (exists) {
+				const categories = await page.categories();
+				if (categories.includes('Category:Videos')) {
+					log(`[W] Page for video already exists: ${titleInfo.title} (${url})`);
+				} else {
+					titleInfo.title = titleInfo.title + ' (video)';
+					titleInfo.mediaTitle = titleInfo.mediaTitle + ' (video)';
+					const newPage = new bot.Page(titleInfo.title);
+					const newExists = await newPage.exists();
+					if (newExists) {
+						log(`[W] Page for video already exists: ${titleInfo.title} (${url})`);
+					} else {
+						await createPage(video, titleInfo, url);
+					}
+				}
+			} else {
+				await createPage(video, titleInfo, url);
 			}
-			count = 0;
-		} else {
-			process.stdout.clearLine(0);
-			process.stdout.cursorTo(0);
-			process.stdout.write(prompt);
+		} catch (error) {
+			log(`[E] Error checking existence of page: ${titleInfo.title}`);
+			log(error);
+		}
+
+		// Check file page existance
+		try {
+			const page = new bot.Page(`File:${titleInfo.mediaTitle}.jpg`);
+			const exists = await page.exists();
+			if (exists) {
+				log(`[W] File page already exists: File:${titleInfo.mediaTitle}.jpg (${url})`);
+			} else {
+				await uploadThumbnail(video, titleInfo, url);
+			}
+		} catch (error) {
+			log(`[E] Error checking existence of file page: File:${titleInfo.mediaTitle}.jpg`);
+			log(error);
+		}
+
+		await saveLastTime(video);
+
+		totalDone++;
+		if (count < MAX_PAGES) {
+			await sleep(TIME_BETWEEN_PAGES * 1000);
 		}
 	}
 }
