@@ -243,7 +243,6 @@ async function main() {
 				break;
 			}
 		}
-		count++;
 		log('');
 		const id = video.id || '';
 		const url = `https://www.youtube.com/watch?v=${id}`;
@@ -314,6 +313,7 @@ async function main() {
 
 		totalDone++;
 		if (count < MAX_PAGES && (didCreate || didUpload)) {
+			count++;
 			await sleep(TIME_BETWEEN_PAGES * 1000);
 		}
 	}

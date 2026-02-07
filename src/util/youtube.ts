@@ -87,13 +87,25 @@ async function fetchAllVideos(after?: Date) {
 	// Fetch new videos
 	const searchResults = await fetchVideos(after);
 	const videoIds = searchResults.map(item => item.id?.videoId).filter((id): id is string => !!id);
-	if (videoIds.length === 0) {
+	let missingIds: string[] = [];
+	try {
+		const missingContent = await fs.readFile('channelVids.json', { encoding: 'utf8' });
+		const channelUrls: string[] = JSON.parse(missingContent);
+		missingIds = channelUrls.map(url => {
+			const vidUrl = new URL(url);
+			return vidUrl.searchParams.get('v') || '';
+		}).filter(id => !!id && !data.some(vid => vid.id === id));
+	} catch (error) {
+		log('[W] Could not read missing video IDs from file; assuming none.');
+	}
+	const combinedIds = [...videoIds, ...missingIds];
+	if (combinedIds.length === 0) {
 		log('[W] No new videos found on YouTube.');
 		return data;
 	}
 	log(`[S] Found ${searchResults.length} new videos on YouTube.`);
-	log(`[I] Fetching data for ${videoIds.length} videos...`);
-	const items = await fetchVideoData(videoIds);
+	log(`[I] Fetching data for ${combinedIds.length} videos...`);
+	const items = await fetchVideoData(combinedIds);
 	log(`[S] Fetched data for ${items.length} videos from YouTube.`);
 	// Prepend new videos to existing list in file, without duplicates
 	const combined: youtube_v3.Schema$Video[] = [...items, ...data].filter((video, index, self) => {
