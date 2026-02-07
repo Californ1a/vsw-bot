@@ -46,8 +46,9 @@ async function saveLastTime(video: youtube_v3.Schema$Video) {
 			const data = new Uint8Array(Buffer.from(publishedAt.toISOString()));
 			await fs.writeFile(LAST_CREATED_FILENAME, data, { signal });
 		} catch (error) {
-			log(`[E] Could not save last created time: ${error}`);
-			return;
+			log('[E] Could not save last created time:');
+			log(error);
+			process.exit(1);
 		}
 	}
 }
@@ -109,6 +110,7 @@ async function createPage(video: youtube_v3.Schema$Video, titleInfo: VideoTitleI
 	} catch (error) {
 		log(`[E] Error creating page for video: ${titleInfo.title}`);
 		log(error);
+		process.exit(1);
 	}
 }
 
@@ -151,6 +153,7 @@ async function uploadThumbnail(video: youtube_v3.Schema$Video, titleInfo: VideoT
 	} catch (error) {
 		log(`[E] Error uploading image: ${imageUrl}`);
 		log(error);
+		process.exit(1);
 	}
 
 	try {
@@ -158,6 +161,7 @@ async function uploadThumbnail(video: youtube_v3.Schema$Video, titleInfo: VideoT
 	} catch (error) {
 		log(`[E] Error deleting temporary file: ${tempFilename}`);
 		log(error);
+		process.exit(1);
 	}
 }
 
@@ -232,7 +236,8 @@ async function main() {
 	for (const video of videos) {
 		if (count >= MAX_PAGES) {
 			log('');
-			const prompt = `Processed ${totalDone}/${videos.length} videos. Create ${MAX_PAGES} more? (y/n): `;
+			const nextBatch = Math.min(videos.length - totalDone, MAX_PAGES);
+			const prompt = `Processed ${totalDone}/${videos.length} videos. Create ${nextBatch} more? (y/n): `;
 			const keepGoing = await continueProcessing(prompt);
 			if (!keepGoing) {
 				break;
@@ -282,6 +287,7 @@ async function main() {
 		} catch (error) {
 			log(`[E] Error checking existence of page: ${titleInfo.title}`);
 			log(error);
+			process.exit(1);
 		}
 
 		// Check file page existance
@@ -296,6 +302,7 @@ async function main() {
 		} catch (error) {
 			log(`[E] Error checking existence of file page: File:${titleInfo.mediaTitle}.jpg`);
 			log(error);
+			process.exit(1);
 		}
 
 		await saveLastTime(video);
