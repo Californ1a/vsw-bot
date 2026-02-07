@@ -176,8 +176,8 @@ async function main() {
 	const utcStr = lastCreated ? lastCreated.toISOString() : 'None';
 	const localStr = lastCreated ? ` (${lastCreated.toLocaleString()})` : '';
 	log(`[I] Last created video date: ${utcStr}${localStr}`);
-	const videos = (await fetchAllVideos(lastCreated))
-		.filter(video => {
+	const allVideos = await fetchAllVideos(lastCreated);
+	const videos = allVideos.filter(video => {
 			// Return only videos newer than lastCreated
 			if (lastCreated && video.snippet?.publishedAt) {
 				const publishedAt = new Date(video.snippet.publishedAt);
@@ -204,7 +204,7 @@ async function main() {
 
 	const titleInfoCache: Record<string, VideoTitleInfo> = {};
 
-	const duplicateTitles = videos.reduce((acc, video) => {
+	const duplicateTitles = allVideos.reduce((acc, video) => {
 		const id = video.id || '';
 		const titleInfo = titleInfoCache[id] || cleanTitle(namespaces, video.snippet?.title);
 		
