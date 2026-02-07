@@ -22,7 +22,6 @@ async function main() {
 
 	if (!args.title) {
 		const prompt = 'Enter a title to clean: ';
-		process.stdout.write(prompt);
 		const exitLines = ['exit', 'quit', 'q'];
 		while (true) {
 			const title = await rl.question(prompt);

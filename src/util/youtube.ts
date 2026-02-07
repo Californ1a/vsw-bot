@@ -7,6 +7,8 @@ const yt = youtube({
 	auth: process.env.YOUTUBE_API_KEY || '',
 });
 
+const VIDEOS_FILE = 'videos.json';
+
 async function fetchVideoData(videoIds: string[]): Promise<youtube_v3.Schema$Video[]> {
 	const chunk = 50;
 	if (videoIds.length > chunk) {
@@ -61,7 +63,7 @@ async function fetchAllVideos(after?: Date) {
 	
 	const data: youtube_v3.Schema$Video[] = [];
 	try {
-		const content = await fs.readFile('videos.json', { encoding: 'utf8',  });
+		const content = await fs.readFile(VIDEOS_FILE, { encoding: 'utf8',  });
 
 		const json: youtube_v3.Schema$Video[] = JSON.parse(content);
 		data.push(...json);
@@ -109,7 +111,7 @@ async function fetchAllVideos(after?: Date) {
 		const { signal } = controller;
 		const jsonStr = JSON.stringify(combined, null, 2);
 		const data = new Uint8Array(Buffer.from(jsonStr));
-		await fs.writeFile('videos.json', data, { signal });
+		await fs.writeFile(VIDEOS_FILE, data, { signal });
 	} catch (error) {
 		log('[E] Could not write videos to file:');
 		log(error);

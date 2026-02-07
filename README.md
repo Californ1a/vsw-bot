@@ -15,5 +15,5 @@ npm run videos
 ```
 
 ```bash
-npm run titleinfo --title "Video title to check"
+npm run titleinfo -- --title "Video title to check"
 ```
