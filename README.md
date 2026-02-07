@@ -14,6 +14,14 @@ To run:
 npm run videos
 ```
 
+To get the cleaned title info:
+
 ```bash
 npm run titleinfo -- --title "Video title to check"
+```
+
+To list all duplicate titles:
+
+```bash
+npm run duplicates
 ```

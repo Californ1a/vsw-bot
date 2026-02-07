@@ -5,7 +5,8 @@
 	"private": true,
 	"scripts": {
 		"videos": "tsx ./src/createVideos.ts",
-		"titleinfo": "tsx ./src/getTitleInfo.ts"
+		"titleinfo": "tsx ./src/getTitleInfo.ts",
+		"duplicates": "tsx ./src/findDuplicates.ts"
 	},
 	"devDependencies": {
 		"@types/minimist": "^1.2.5",
