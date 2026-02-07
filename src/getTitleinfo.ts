@@ -1,9 +1,15 @@
 import { bot, log } from './util/bot';
 import { cleanTitle } from './util/titleinfo';
 import parseArgs from 'minimist';
+import readline from 'node:readline/promises';
+
+const rl = readline.createInterface({
+	input: process.stdin,
+	output: process.stdout,
+});
 
 async function main() {
-	const args = parseArgs(Bun.argv, {
+	const args = parseArgs(process.argv, {
 		string: ['title'],
 		alias: { t: 'title' },
 	});
@@ -18,8 +24,8 @@ async function main() {
 		const prompt = 'Enter a title to clean: ';
 		process.stdout.write(prompt);
 		const exitLines = ['exit', 'quit', 'q'];
-		for await (const line of console) {
-			const title = line.trim();
+		while (true) {
+			const title = await rl.question(prompt);
 			if (title) {
 				const lc = title.toLowerCase();
 				if (exitLines.includes(lc)) {

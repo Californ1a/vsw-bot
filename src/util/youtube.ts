@@ -1,9 +1,10 @@
 import { youtube, youtube_v3 } from '@googleapis/youtube';
 import { log } from './bot';
+import fs from 'node:fs/promises';
 
 const yt = youtube({
 	version: 'v3',
-	auth: process.env.YOUTUBE_API_KEY,
+	auth: process.env.YOUTUBE_API_KEY || '',
 });
 
 async function fetchVideoData(videoIds: string[]): Promise<youtube_v3.Schema$Video[]> {
@@ -33,13 +34,13 @@ async function fetchVideos(after?: Date, nextPageToken?: string) {
 	}
 	const searchRes = await yt.search.list({
 		part: ['snippet'],
-		channelId: process.env.YOUTUBE_CHANNEL_ID,
+		channelId: process.env.YOUTUBE_CHANNEL_ID || '',
 		order: 'date',
 		maxResults: 25,
 		safeSearch: 'none',
 		type: ['video'],
-		publishedAfter: after ? after.toISOString() : undefined,
-		pageToken: nextPageToken,
+		publishedAfter: after ? after.toISOString() : '',
+		pageToken: nextPageToken || '',
 	});
 
 	log(`[I] Fetched new videos from YouTube. Found ${searchRes.data.items?.length || 0} items.`);
@@ -57,14 +58,12 @@ async function fetchVideos(after?: Date, nextPageToken?: string) {
 async function fetchAllVideos(after?: Date) {
 	log('[I] Fetching new videos from YouTube...');
 	// Read videos from file to get recent video time
+	
 	const data: youtube_v3.Schema$Video[] = [];
-	let file: Bun.BunFile | null = null;
 	try {
-		file = Bun.file('videos.json', { type: 'application/json' });
-		const exists = await file.exists();
-		if (!exists) throw new Error('File does not exist');
+		const content = await fs.readFile('videos.json', { encoding: 'utf8',  });
 
-		const json: youtube_v3.Schema$Video[] = await file.json();
+		const json: youtube_v3.Schema$Video[] = JSON.parse(content);
 		data.push(...json);
 
 		// Get the latest video's publishedAt date
@@ -106,10 +105,11 @@ async function fetchAllVideos(after?: Date) {
 
 	// Write combined list back to file
 	try {
-		if (!file) {
-			file = Bun.file('videos.json', { type: 'application/json' });
-		}
-		await file.write(JSON.stringify(combined, null, 2));
+		const controller = new AbortController();
+		const { signal } = controller;
+		const jsonStr = JSON.stringify(combined, null, 2);
+		const data = new Uint8Array(Buffer.from(jsonStr));
+		await fs.writeFile('videos.json', data, { signal });
 	} catch (error) {
 		log('[E] Could not write videos to file:');
 		log(error);

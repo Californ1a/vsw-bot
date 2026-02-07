@@ -1,16 +1,27 @@
 import { parse } from 'iso8601-duration';
+import sleep from './util/sleep';
 import { bot, log } from './util/bot';
 import mediaTemplate from '../templates/media';
 import { fetchAllVideos } from './util/youtube';
 import { cleanTitle, FALSE_SUBPAGE_REASON } from './util/titleinfo';
 import type { youtube_v3 } from '@googleapis/youtube';
+import fs from 'node:fs/promises';
+import { Buffer } from 'node:buffer';
 
-const TEMP_FILES: Bun.BunFile[] = [];
+const LAST_CREATED_FILENAME = 'lastCreated.txt';
 
-async function saveLastTime(video: youtube_v3.Schema$Video, file: Bun.BunFile) {
+async function saveLastTime(video: youtube_v3.Schema$Video) {
 	if (video.snippet?.publishedAt) {
 		const publishedAt = new Date(video.snippet.publishedAt);
-		await file.write(publishedAt.toISOString());
+		try {
+			const controller = new AbortController();
+			const { signal } = controller;
+			const data = new Uint8Array(Buffer.from(publishedAt.toISOString()));
+			await fs.writeFile(LAST_CREATED_FILENAME, data, { signal });
+		} catch (error) {
+			log(`[E] Could not save last created time: ${error}`);
+			return;
+		}
 	}
 }
 
@@ -96,25 +107,30 @@ async function uploadThumbnail(video: youtube_v3.Schema$Video, titleInfo: VideoT
 	
 	const imageUrl = best.url;
 	const tempFilename = `thumbnail-${Date.now()}.jpg`;
-	const file = Bun.file(tempFilename);
-	TEMP_FILES.push(file);
 	try {
-		const result = await fetch(imageUrl);
-		await Bun.write(file, result);
+		const img = await fetch(imageUrl);
+		const bytes = await img.bytes()
+
+		const controller = new AbortController();
+		const { signal } = controller;
+		await fs.writeFile(tempFilename, bytes, { signal });
 		if (process.env.NODE_ENV === 'production') {
 			await bot.upload(tempFilename, `${titleInfo.mediaTitle}.jpg`, `{{Media thumbnail|link=${imageUrl}}}`, {
-				ignorewarnings: false,
 				comment: `Automated upload of thumbnail image for YouTube video ${url}`,
 			});
-			await Bun.sleep(1000);
+			await sleep(1000);
 		} else {
 			log(`[S] (Simulated) Uploaded image: ${imageUrl}`);
 		}
 	} catch (error) {
-		if (error instanceof Error && error.message.includes('already exists')) {
-			log(`[I] Image already exists: ${imageUrl}`);
-		}
 		log(`[E] Error uploading image: ${imageUrl}`);
+		log(error);
+	}
+
+	try {
+		await fs.rm(tempFilename);
+	} catch (error) {
+		log(`[E] Error deleting temporary file: ${tempFilename}`);
 		log(error);
 	}
 }
@@ -122,13 +138,11 @@ async function uploadThumbnail(video: youtube_v3.Schema$Video, titleInfo: VideoT
 let count = 0;
 async function main() {
 	let lastCreated: Date | undefined = undefined;
-	const file = Bun.file('lastCreated.txt');
-	const exists = await file.exists();
-	if (exists) {
-		const content = await file.text();
-		if (content) {
-			lastCreated = new Date(content.trim());
-		}
+	try {
+		const content = await fs.readFile(LAST_CREATED_FILENAME, { encoding: 'utf8' });
+		lastCreated = new Date(content.trim());
+	} catch (error) {
+		// Ignore
 	}
 	const utcStr = lastCreated ? lastCreated.toISOString() : 'None';
 	const localStr = lastCreated ? ` (${lastCreated.toLocaleString()})` : '';
@@ -204,12 +218,12 @@ async function main() {
 		}
 		if (titleInfo.title === '') {
 			log(`[W] Skipping video with empty title: ${url}`);
-			await saveLastTime(video, file);
+			await saveLastTime(video);
 			continue;
 		}
 		if (duplicateTitles.get(titleInfo.title)?.length! > 1) {
 			log(`[W] Skipping video with duplicate title: ${titleInfo.title} (${url})`);
-			await saveLastTime(video, file);
+			await saveLastTime(video);
 			continue;
 		}
 
@@ -218,7 +232,14 @@ async function main() {
 			const page = new bot.Page(titleInfo.title);
 			const exists = await page.exists();
 			if (exists) {
-				log(`[W] Page for video already exists: ${titleInfo.title} (${url})`);
+				const categories = await page.categories();
+				if (categories.includes('Videos')) {
+					log(`[W] Page for video already exists: ${titleInfo.title} (${url})`);
+				} else {
+					titleInfo.title = titleInfo.title + ' (video)';
+					titleInfo.mediaTitle = titleInfo.mediaTitle + ' (video)';
+					await createPage(video, titleInfo, url);
+				}
 			} else {
 				await createPage(video, titleInfo, url);
 			}
@@ -241,16 +262,13 @@ async function main() {
 			log(error);
 		}
 
-		await saveLastTime(video, file);
+		await saveLastTime(video);
 
-		await Bun.sleep(3000);
+		await sleep(3000);
 	}
 }
 
 main().then(() => {
 	log('[S] Finished creating video pages.');
-	for (const file of TEMP_FILES) {
-		file.delete();
-	}
 	process.exit();
 });

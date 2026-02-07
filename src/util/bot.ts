@@ -1,12 +1,13 @@
+import 'dotenv/config';
 import { Mwn } from 'mwn';
 const log = Mwn.log;
 
 log('[I] Initializing bot...');
 
 const bot = await Mwn.init({
-	apiUrl: process.env.WIKI_API_URL,
-	username: process.env.WIKI_BOT_USERNAME,
-	password: process.env.WIKI_BOT_PASSWORD,
+	apiUrl: process.env.WIKI_API_URL || '',
+	username: process.env.WIKI_BOT_USERNAME || '',
+	password: process.env.WIKI_BOT_PASSWORD || '',
 	userAgent: 'AllianceBot/1.0.0 ([[User:Californ1a]])',
 	defaultParams: {
 		assert: 'bot',
