@@ -231,8 +231,9 @@ async function main() {
 	// Create pages for videos
 	for (const video of videos) {
 		if (count >= MAX_PAGES) {
+			log('');
 			const prompt = `Processed ${totalDone}/${videos.length} videos. Create ${MAX_PAGES} more? (y/n): `;
-			const keepGoing = continueProcessing(prompt);
+			const keepGoing = await continueProcessing(prompt);
 			if (!keepGoing) {
 				break;
 			}
