@@ -263,6 +263,7 @@ async function main() {
 		}
 
 		// Check page existance
+		let didCreate = false;
 		try {
 			const page = new bot.Page(titleInfo.title);
 			const exists = await page.exists();
@@ -279,10 +280,12 @@ async function main() {
 						log(`[W] Page for video already exists: ${titleInfo.title} (${url})`);
 					} else {
 						await createPage(video, titleInfo, url);
+						didCreate = true;
 					}
 				}
 			} else {
 				await createPage(video, titleInfo, url);
+				didCreate = true;
 			}
 		} catch (error) {
 			log(`[E] Error checking existence of page: ${titleInfo.title}`);
@@ -290,6 +293,7 @@ async function main() {
 			process.exit(1);
 		}
 
+		let didUpload = false;
 		// Check file page existance
 		try {
 			const page = new bot.Page(`File:${titleInfo.mediaTitle}.jpg`);
@@ -298,6 +302,7 @@ async function main() {
 				log(`[W] File page already exists: File:${titleInfo.mediaTitle}.jpg (${url})`);
 			} else {
 				await uploadThumbnail(video, titleInfo, url);
+				didUpload = true;
 			}
 		} catch (error) {
 			log(`[E] Error checking existence of file page: File:${titleInfo.mediaTitle}.jpg`);
@@ -308,7 +313,7 @@ async function main() {
 		await saveLastTime(video);
 
 		totalDone++;
-		if (count < MAX_PAGES) {
+		if (count < MAX_PAGES && (didCreate || didUpload)) {
 			await sleep(TIME_BETWEEN_PAGES * 1000);
 		}
 	}
